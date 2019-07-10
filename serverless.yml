@@ -56,7 +56,7 @@ custom:
         description: 'Lambda DataSource'
         config:
           functionName: graphql
-          iamRoleStatements: # custom IAM Role statements for this DataSource. Ignored if `serviceRoleArn` is present. Auto-generated if both `serviceRoleArn` and `iamRoleStatements` are omitted
+          iamRoleStatements: 
             - Effect: "Allow"
               Action:
                 - "lambda:invokeFunction"
@@ -70,7 +70,6 @@ functions:
 
 resources:
   Resources:
-    #Image table
     ImageTable:
       Type: "AWS::DynamoDB::Table"
       Properties:
