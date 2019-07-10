@@ -1,0 +1,84 @@
+service: appsync-intro 
+
+plugins:
+   - serverless-appsync-plugin
+   - serverless-pseudo-parameters
+
+provider:
+  name: aws
+  runtime: nodejs10.x
+
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "s3:ListBucket"
+        - "s3:GetObject"
+      Resource: "arn:aws:s3:::${self:custom.BUCKET_NAME}/*"
+    - Effect: "Allow"
+      Action:
+        - "dynamodb:GetItem"
+      Resource: "arn:aws:dynamodb:#{AWS::Region}:*:table/${self:custom.IMAGE_TABLE}"
+
+custom:      
+  IMAGE_TABLE: appsync-intro-image-table
+  BUCKET_NAME: appsync-intro-bucket
+
+  appSync:
+    name:  appsync-intro
+    authenticationType: API_KEY
+    mappingTemplates:
+      - dataSource: Images
+        type: Mutation
+        field: saveImage
+        request: saveImage-request-mapping-template.vtl
+        response: saveImage-response-mapping-template.vtl
+      - dataSource: lambdaDatasource
+        type: Query
+        field: getImageSignedPath
+        request: getImageSignedPath-request-mapping-template.vtl
+        response: getImageSignedPath-response-mapping-template.vtl
+    dataSources:
+      - type: AMAZON_DYNAMODB
+        name: Images
+        description: 'Table containing the metadata of the images'
+        config:
+          tableName: { Ref: ImageTable } 
+          iamRoleStatements:
+            - Effect: "Allow"
+              Action:
+                - "dynamodb:GetItem"
+                - "dynamodb:PutItem"
+              Resource:
+                - "arn:aws:dynamodb:#{AWS::Region}:*:table/${self:custom.IMAGE_TABLE}"
+                - "arn:aws:dynamodb:#{AWS::Region}:*:table/${self:custom.IMAGE_TABLE}/*"
+      - type: AWS_LAMBDA
+        name: lambdaDatasource
+        description: 'Lambda DataSource'
+        config:
+          functionName: graphql
+          iamRoleStatements: # custom IAM Role statements for this DataSource. Ignored if `serviceRoleArn` is present. Auto-generated if both `serviceRoleArn` and `iamRoleStatements` are omitted
+            - Effect: "Allow"
+              Action:
+                - "lambda:invokeFunction"
+              Resource:
+                - "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-dev-graphql"
+                - "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-dev-graphql:*"
+
+functions:
+  graphql:
+    handler: handler.graphql
+
+resources:
+  Resources:
+    #Image table
+    ImageTable:
+      Type: "AWS::DynamoDB::Table"
+      Properties:
+        KeySchema:
+          - AttributeName: name
+            KeyType: HASH
+        AttributeDefinitions:
+          - AttributeName: name
+            AttributeType: S
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:custom.IMAGE_TABLE} 

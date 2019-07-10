@@ -1,0 +1,16 @@
+{
+    "version": "2017-02-28",
+    "operation": "PutItem",
+    "key": {
+        "name":  { "S" : "${context.arguments.name}" }
+    },
+    "attributeValues": {
+        "s3Path": { "S" : "${context.arguments.s3Path}" }
+    },
+    "condition": {
+        "expression": "attribute_not_exists(#name)",
+        "expressionNames": {
+            "#name": "name",
+        }
+    }
+}

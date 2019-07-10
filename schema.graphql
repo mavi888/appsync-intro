@@ -1,0 +1,17 @@
+type Query {
+	getImageSignedPath(imageName: String!): String!
+}
+
+type Mutation {
+	saveImage(name: String!, s3Path: String!): Image!
+}
+
+type Image {
+	name: String!
+	s3Path: String!
+}
+
+schema {
+	query: Query
+	mutation: Mutation
+}
